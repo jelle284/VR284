@@ -1,0 +1,10 @@
+{
+	"alwaysActivate": false,
+	"name" : "VR284",
+	"directory" : "",
+	"resourceOnly" : false,
+	"hmd_presence" : 
+	[
+	"*.*"
+	]
+}
