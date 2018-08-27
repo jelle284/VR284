@@ -61,26 +61,17 @@ public:
 		@return return unique object id which set by Activate function.
 	*/
 	const uint32_t GetUniqueObjectId();
-	/**
-		set controller's pose interval.
-	*/	
-	void CHandControllerDevice::SetReportPoseInterval(const int& new_interval);
-	
-	// Get pointer to tracking client, so the device can request pose messages
-	void LinkToTrackingServer(tracking_client* pClient);
 
 private:
-	void ReportPoseButtonThread();//< report hand controller's pose and button state.
 	string m_sSerialNumber;					//< serial number
 	uint32_t m_nUniqueObjectId;				//< unique object id which set by active function
 	vr::DriverPose_t m_Pose;					//< hand controller's pose
 	EHandController m_eHandController;		//< indicate left or right hand
 	vr::VRControllerState_t m_ControllerState;//< controller state
 	vr::PropertyContainerHandle_t m_PropertyContainerHandle;//< set/get property
-	std::thread m_tReportPoseButtonThread;
-	bool m_bReportPoseButtonThreadState;                //<false:stop true:running.
 	char m_cControllerRole; 				//< 'L' or 'R' controller.
 	std::chrono::milliseconds m_nReportPoseInterval;			//< report controller's pose interval.
+
 	float m_fHmdXPositionOffset;	//< six dof tracking module X position offset.
 	float m_fHmdYPositionOffset;	//< six dof tracking module Y position offset.
 	float m_fHmdZPositionOffset;	//< six dof tracking module Z position offset.		
@@ -88,9 +79,6 @@ private:
     double m_bCameraHeight;
 
 	// vr284
-	tracking_client* pTrackingClient;
-	string client_tag;
-	ClientPoseMessage CPose;
 	vr::VRInputComponentHandle_t btn_menu, btn_trigger;
 };
 

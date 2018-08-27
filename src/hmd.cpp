@@ -49,10 +49,6 @@ CHeadMountDisplayDevice::CHeadMountDisplayDevice(){
 	m_Pose.vecWorldFromDriverTranslation[0] = 0.0f;
 	m_Pose.vecWorldFromDriverTranslation[1] = 0.0f;
 	m_Pose.vecWorldFromDriverTranslation[2] = 0.0f;
-
-	//create report hmd pose thread
-	m_tReportPoseThread = std::thread(&CHeadMountDisplayDevice::ReportPoseThread ,this);
-	m_bReportPoseThreadState = true;
 }
 
 CHeadMountDisplayDevice::~CHeadMountDisplayDevice(){
@@ -119,7 +115,6 @@ EVRInitError CHeadMountDisplayDevice::Activate(uint32_t unObjectId){
 void CHeadMountDisplayDevice::Deactivate(){
 	DriverLog("CHeadMountDisplayDevice::Deactive: enter\n");
 	m_unObjectId = vr::k_unTrackedDeviceIndexInvalid;
-	m_bReportPoseThreadState = false;
 }
 
 void CHeadMountDisplayDevice::EnterStandby(){
@@ -141,23 +136,6 @@ void CHeadMountDisplayDevice::DebugRequest(const char *pchRequest,char *pchRespo
 }
 
 DriverPose_t CHeadMountDisplayDevice::GetPose(){
-	
-	m_Pose.vecPosition[0] = CPose.pos_x;
-	m_Pose.vecPosition[1] = CPose.pos_y;
-	m_Pose.vecPosition[2] = CPose.pos_z;
-
-	m_Pose.vecVelocity[0] = CPose.vel_x;
-	m_Pose.vecVelocity[1] = CPose.vel_y;
-	m_Pose.vecVelocity[2] = CPose.vel_z;
-
-	m_Pose.qRotation.w = CPose.quat_w;
-	m_Pose.qRotation.x = CPose.quat_x;
-	m_Pose.qRotation.y = CPose.quat_y;
-	m_Pose.qRotation.z = CPose.quat_z;
-
-	//m_Pose.vecAngularVelocity[0] = CPose.ang_vel_x;
-	//m_Pose.vecAngularVelocity[1] = CPose.ang_vel_y;
-	//m_Pose.vecAngularVelocity[2] = CPose.ang_vel_z;
 
 	return m_Pose;
 }
@@ -241,27 +219,6 @@ std::string CHeadMountDisplayDevice::GetSerialNumber(){
 	return m_sSerialNumber;
 }
 
-void CHeadMountDisplayDevice::ReportPoseThread(){
-	Sleep(1*1000);
-	auto retryInterval = std::chrono::milliseconds( REPLY_INTERVAL_MS );
-	auto pollDeadline = std::chrono::steady_clock::now();
-	
-	while(m_bReportPoseThreadState){
-		if ( m_unObjectId != vr::k_unTrackedDeviceIndexInvalid )
-		{
-			CPose = pTrackingClient->UpdatePose("HMD", m_Pose.poseIsValid);
-			vr::VRServerDriverHost()->TrackedDevicePoseUpdated( m_unObjectId, GetPose(), sizeof( DriverPose_t ) );
-		}
-
-		pollDeadline += retryInterval;
-		std::this_thread::sleep_until( pollDeadline );
-	}
-}
-
-vr::DriverPose_t CHeadMountDisplayDevice::GetMemberPose(){
-	return m_Pose;
-}
-
-void CHeadMountDisplayDevice::LinkToTrackingServer(tracking_client* pClient) {
-	pTrackingClient = pClient;
+const uint32_t CHeadMountDisplayDevice::GetUniqueObjectId() {
+	return m_unObjectId;
 }

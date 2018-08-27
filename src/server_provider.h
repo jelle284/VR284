@@ -60,9 +60,9 @@ public:
 	virtual void LeaveStandby() override;
 
 private:
-	
-	CHeadMountDisplayDevice *m_pHeadMountDisplay;///< pointer to HMD
-	CHandControllerDevice *m_pHandController[HAND_CONTROLLER_COUNT];///< pointer to hand controllers
+	tracking_client *m_pTrackingClient;
+	CHeadMountDisplayDevice *m_pHeadMountDisplay; //< pointer to HMD
+	CHandControllerDevice *m_pHandController[HAND_CONTROLLER_COUNT]; //< pointer to hand controllers
 
 	bool m_bControllerState[HAND_CONTROLLER_COUNT];								//< true:controller is connect  false: controller is disconnect
 	static	CServerProvider *m_pThis;							//< use to static member pointer this.

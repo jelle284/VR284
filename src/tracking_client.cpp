@@ -1,3 +1,5 @@
+#ifndef VR284_TRACKING_CLIENT_H_
+#define VR284_TRACKING_CLIENT_H_
 #include "tracking_client.h"
 
 
@@ -45,11 +47,8 @@ tracking_client::~tracking_client()
 std::string tracking_client::GetDeviceList()
 {
 	DriverLog("Asking server for device list.\n");
-	ClientRequest request = { 0 };
-	strcpy_s(request.message, "Add Devices");
-	request.packetNum = -1;
 	char buffer[64];
-	sendto(s, (char*)&request, sizeof(request), 0, (struct sockaddr*)&server, slen);
+	sendto(s, "Add Devices", 12, 0, (struct sockaddr*)&server, slen);
 	fd_set fds_copy = fds_master;
 	int sockcount = select(s+1, &fds_copy, NULL, NULL, &timeout);
 	if (sockcount > 0) {
@@ -59,29 +58,103 @@ std::string tracking_client::GetDeviceList()
 	return std::string(buffer);
 }
 
-ClientPoseMessage tracking_client::UpdatePose(std::string tag, bool &Success)
+void tracking_client::UpdateThread()
 {
-	mtx.lock();
-	ClientPoseMessage pose = { 0 };
-	ClientRequest request = { 0 };
-	strcpy_s(request.message, tag.c_str());
-	request.packetNum = packetNum;
-	fd_set fds_copy = fds_master;
-	sendto(s, (char*)&request, sizeof(request), 0, (struct sockaddr*)&server, slen);
-	int sockcount = select(s + 1, &fds_copy, NULL, NULL, &timeout);
-	if (sockcount > 0) {
-		recvfrom(s, (char*)&pose, sizeof(pose), 0, (struct sockaddr*)&server, &slen);
+	DriverLog("UDP worker thread entry\n.");
+	b_running = true;
+	Sleep(1 * 1000);
+	while (b_running) {
+		PoseMessage pose = { 0 };
+
+		fd_set fds_copy = fds_master;
+		int sockcount = select(s + 1, &fds_copy, NULL, NULL, &timeout);
+		if (sockcount > 0) {
+			// if data is available read
+			recvfrom(s, (char*)&pose, sizeof(pose), 0, (struct sockaddr*)&server, &slen);
+			packetNum++;
+			// update device
+			switch (pose.tag) {
+
+			case DEVICE_TAG_HMD:
+				if (HMD != vr::k_unTrackedDeviceIndexInvalid)
+				{
+					vr::VRServerDriverHost()->TrackedDevicePoseUpdated(HMD, GetPoseFromUDP(pose), sizeof(DriverPose_t));
+				}
+				break;
+
+			case DEVICE_TAG_RIGHT_HAND_CONTROLLER:
+				if (RHController != vr::k_unTrackedDeviceIndexInvalid)
+				{
+					vr::VRServerDriverHost()->TrackedDevicePoseUpdated(RHController, GetPoseFromUDP(pose), sizeof(DriverPose_t));
+				}
+				//vr::VRDriverInput()->UpdateBooleanComponent(btn_menu, (0x8000 & GetAsyncKeyState('A')) != 0, 0);
+				//vr::VRDriverInput()->UpdateBooleanComponent(btn_trigger, Pose.TriggerBtn, 0);
+				break;
+
+			case DEVICE_TAG_LEFT_HAND_CONTROLLER:
+				if (LHController != vr::k_unTrackedDeviceIndexInvalid)
+				{
+					vr::VRServerDriverHost()->TrackedDevicePoseUpdated(LHController, GetPoseFromUDP(pose), sizeof(DriverPose_t));
+				}
+				//vr::VRDriverInput()->UpdateBooleanComponent(btn_menu, (0x8000 & GetAsyncKeyState('A')) != 0, 0);
+				//vr::VRDriverInput()->UpdateBooleanComponent(btn_trigger, Pose.TriggerBtn, 0);
+				break;
+
+			default:
+				break;
+			}
+		}
 	}
-	if (pose.packetNum == packetNum) {
-		Success = true;
-		packetNum++;
-		if (packetNum > 999) packetNum = 0;
-	}
-	else {
-		Success = false;
-		DriverLog("Packet failure. Packet num: %i, recieved %i.\n", packetNum, pose.packetNum);
-		packetNum = 0;
-	}
-	mtx.unlock();
-	return pose;
+	DriverLog("UDP worker thread exit\n.");
 }
+
+void tracking_client::Start()
+{
+	pThread = new std::thread(&tracking_client::UpdateThread, this);
+}
+
+void tracking_client::Stop()
+{
+	b_running = false;
+	pThread->join();
+}
+
+vr::DriverPose_t tracking_client::GetPoseFromUDP(PoseMessage Pose)
+{
+	vr::DriverPose_t DriverPose;
+
+	//init m_pose struct
+	memset(&DriverPose, 0, sizeof(DriverPose));
+	DriverPose.willDriftInYaw = true;
+	DriverPose.shouldApplyHeadModel = false;
+	DriverPose.deviceIsConnected = true;
+	DriverPose.poseIsValid = true;
+	DriverPose.result = vr::ETrackingResult::TrackingResult_Running_OK;
+	DriverPose.qRotation = HmdQuaternion_Init(1, 0, 0, 0);
+	DriverPose.qWorldFromDriverRotation = HmdQuaternion_Init(1, 0, 0, 0);
+	DriverPose.qDriverFromHeadRotation = HmdQuaternion_Init(1, 0, 0, 0);
+	DriverPose.poseTimeOffset = -0.016f;
+	DriverPose.vecDriverFromHeadTranslation[0] = 0.0f;
+	DriverPose.vecDriverFromHeadTranslation[1] = 0.0f;
+	DriverPose.vecDriverFromHeadTranslation[2] = 0.0f;
+	DriverPose.vecWorldFromDriverTranslation[0] = 0.0f;
+	DriverPose.vecWorldFromDriverTranslation[1] = 0.0f;
+	DriverPose.vecWorldFromDriverTranslation[2] = 0.0f;
+
+	DriverPose.vecPosition[0] = Pose.pos_x;
+	DriverPose.vecPosition[1] = Pose.pos_y;
+	DriverPose.vecPosition[2] = Pose.pos_z;
+
+	DriverPose.vecVelocity[0] = Pose.vel_x;
+	DriverPose.vecVelocity[1] = Pose.vel_y;
+	DriverPose.vecVelocity[2] = Pose.vel_z;
+
+	DriverPose.qRotation.w = Pose.quat_w;
+	DriverPose.qRotation.x = Pose.quat_x;
+	DriverPose.qRotation.y = Pose.quat_y;
+	DriverPose.qRotation.z = Pose.quat_z;
+
+	return DriverPose;
+}
+
+#endif

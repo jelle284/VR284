@@ -16,33 +16,34 @@ vr::EVRInitError CServerProvider::Init( IVRDriverContext *pDriverContext ){
 	VR_INIT_SERVER_DRIVER_CONTEXT( pDriverContext );
 
 	// Initiate tracking client and get list of devices connected
-	tracking_client* pTrackingClient = new tracking_client();
-	std::string devices = pTrackingClient->GetDeviceList();
+	m_pTrackingClient = new tracking_client();
+	std::string devices = m_pTrackingClient->GetDeviceList();
 
 	if (devices.find("HMD") != devices.npos) {
 		//create HMD device
 		m_pHeadMountDisplay = new CHeadMountDisplayDevice();
-		m_pHeadMountDisplay->LinkToTrackingServer(pTrackingClient);
 		vr::VRServerDriverHost()->TrackedDeviceAdded(m_pHeadMountDisplay->GetSerialNumber().c_str(), vr::TrackedDeviceClass_HMD, m_pHeadMountDisplay);
 	}
 
 	if (devices.find("Left Hand Controller") != devices.npos) {
 		//create controller device.
 		m_pHandController[LEFT_HAND_CONTROLLER] = new CHandControllerDevice("Left Controller", TrackedControllerRole_LeftHand);
-		m_pHandController[LEFT_HAND_CONTROLLER]->LinkToTrackingServer(pTrackingClient);
+		m_pTrackingClient->LHController = m_pHandController[LEFT_HAND_CONTROLLER]->GetUniqueObjectId();
 		vr::VRServerDriverHost()->TrackedDeviceAdded(m_pHandController[0]->GetSerialNumber(), vr::TrackedDeviceClass_Controller, m_pHandController[0]);
 	}
 
 	if (devices.find("Right Hand Controller") != devices.npos) {
 		//create controller device.
 		m_pHandController[RIGHT_HAND_CONTROLLER] = new CHandControllerDevice("Right Controller", TrackedControllerRole_RightHand);
-		m_pHandController[RIGHT_HAND_CONTROLLER]->LinkToTrackingServer(pTrackingClient);
+		m_pTrackingClient->RHController = m_pHandController[RIGHT_HAND_CONTROLLER]->GetUniqueObjectId();
 		vr::VRServerDriverHost()->TrackedDeviceAdded(m_pHandController[1]->GetSerialNumber(), vr::TrackedDeviceClass_Controller, m_pHandController[1]);
 	}
+	m_pTrackingClient->Start();
 	return VRInitError_None;
 }
 
 void CServerProvider::Cleanup(){
+	m_pTrackingClient->Stop();
 	CleanupDriverLog();
 }
 
@@ -51,7 +52,7 @@ const char * const *CServerProvider::GetInterfaceVersions(){
 }
 
 void CServerProvider::RunFrame(){
-	
+	m_pTrackingClient->HMD = m_pHeadMountDisplay->GetUniqueObjectId();
 }
 
 bool CServerProvider::ShouldBlockStandbyMode(){

@@ -2,24 +2,10 @@
 #include <WinSock2.h>
 #pragma comment(lib,"ws2_32.lib") //Winsock Library
 #include <string>
-#include <mutex>
+
+#include "common.h"
 #include "driverlog.h"
 
-
-struct ClientPoseMessage {
-	float
-		quat_w, quat_x, quat_y, quat_z,
-		pos_x, pos_y, pos_z,
-		vel_x, vel_y, vel_z,
-		ang_vel_x, ang_vel_y, ang_vel_z;
-	bool TriggerBtn;
-	int packetNum;
-};
-
-struct ClientRequest {
-	char message[32];
-	int packetNum;
-};
 
 class tracking_client
 {
@@ -29,15 +15,26 @@ private:
 	WSADATA wsa;
 	timeval timeout;
 	fd_set fds_master;
-	std::mutex mtx;
+
+	/* Worker thread */
+	void UpdateThread();
+	bool b_running; // thread is running
+	std::thread *pThread;
+
+	/* Convert pose to openVR api. */
+	vr::DriverPose_t GetPoseFromUDP(PoseMessage Pose);
 public:
+
+	/* ID of tracked devices */
+	vr::TrackedDeviceIndex_t HMD, RHController, LHController;
+
 	tracking_client();
 	~tracking_client();
 	
 	/*Ask server for list of connected devices*/
-	std::string GetDeviceList(); 
+	std::string GetDeviceList();
 
-	/*Update pose for a specific device*/
-	ClientPoseMessage UpdatePose(std::string tag, bool &Success); 
+	void Start();
+	void Stop();
 };
 

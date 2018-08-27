@@ -26,13 +26,11 @@ CHandControllerDevice::CHandControllerDevice(string serial_number,ETrackedContro
 	switch (controller_role) {
 		case TrackedControllerRole_LeftHand:
 			DriverLog("Left hand constructor\n");
-			client_tag = string("Left Hand Controller");
 			m_eHandController = LEFT_HAND_CONTROLLER;
 			m_cControllerRole = 'L';
 			break;
 		case TrackedControllerRole_RightHand:
 			DriverLog("Right hand constructor\n");
-			client_tag = string("Right Hand Controller");
 			m_eHandController = RIGHT_HAND_CONTROLLER;
 			m_cControllerRole = 'R';
 			break;
@@ -48,10 +46,6 @@ CHandControllerDevice::CHandControllerDevice(string serial_number,ETrackedContro
 	memset( &m_ControllerState, 0, sizeof( m_ControllerState ) );
 	m_PropertyContainerHandle = vr::k_ulInvalidPropertyContainer;
 	
-	//create report controller pose and button thread
-	m_tReportPoseButtonThread = std::thread(&CHandControllerDevice::ReportPoseButtonThread ,this);
-	m_bReportPoseButtonThreadState = true;	
-
 }
 
 CHandControllerDevice::~CHandControllerDevice(){
@@ -110,8 +104,6 @@ EVRInitError CHandControllerDevice::Activate( uint32_t unObjectId ){
 void CHandControllerDevice::Deactivate(){
 	DriverLog("Hand Controller: Deactivate.\n");
 	m_nUniqueObjectId = k_unTrackedDeviceIndexInvalid;
-	m_bReportPoseButtonThreadState = false;
-	m_tReportPoseButtonThread.join();
 }
 void CHandControllerDevice::EnterStandby(){
 
@@ -126,19 +118,6 @@ void CHandControllerDevice::DebugRequest( const char *pchRequest, char *pchRespo
 
 DriverPose_t CHandControllerDevice::GetPose(){
 	//get controller pose.
-
-	m_Pose.vecPosition[0] = CPose.pos_x;
-	m_Pose.vecPosition[1] = CPose.pos_y;
-	m_Pose.vecPosition[2] = CPose.pos_z;
-
-	m_Pose.vecVelocity[0] = CPose.vel_x;
-	m_Pose.vecVelocity[1] = CPose.vel_y;
-	m_Pose.vecVelocity[2] = CPose.vel_z;
-
-	m_Pose.qRotation.w = CPose.quat_w;
-	m_Pose.qRotation.x = CPose.quat_x;
-	m_Pose.qRotation.y = CPose.quat_y;
-	m_Pose.qRotation.z = CPose.quat_z;
 	return m_Pose;
 }
 
@@ -148,34 +127,4 @@ const char *CHandControllerDevice::GetSerialNumber(){
 
 const uint32_t CHandControllerDevice::GetUniqueObjectId(){
     return m_nUniqueObjectId;
-}
-
-void CHandControllerDevice::ReportPoseButtonThread(){
-	Sleep(1 * 1000);
-	auto pollDeadline = std::chrono::steady_clock::now();	
-	while(m_bReportPoseButtonThreadState){	
-		if ( m_nUniqueObjectId != vr::k_unTrackedDeviceIndexInvalid )
-		{
-			CPose = pTrackingClient->UpdatePose(client_tag, m_Pose.poseIsValid);
-
-			//update pose
-			vr::VRServerDriverHost()->TrackedDevicePoseUpdated( m_nUniqueObjectId, GetPose(), sizeof( DriverPose_t ) );
-
-			//update button state
-			vr::VRDriverInput()->UpdateBooleanComponent(btn_menu, (0x8000 & GetAsyncKeyState('A')) != 0, 0);
-			vr::VRDriverInput()->UpdateBooleanComponent(btn_trigger, CPose.TriggerBtn, 0);
-		}
-
-		// thread timing
-		pollDeadline += m_nReportPoseInterval;
-		std::this_thread::sleep_until( pollDeadline );
-	}
-}
-
-void CHandControllerDevice::SetReportPoseInterval(const int& new_interval){
-	m_nReportPoseInterval = std::chrono::milliseconds( new_interval );
-}
-
-void CHandControllerDevice::LinkToTrackingServer(tracking_client* pClient) {
-	pTrackingClient = pClient;
 }
