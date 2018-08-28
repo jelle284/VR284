@@ -51,8 +51,6 @@ typedef enum HAND_CONTROLLER{
 }EHandController;
 
 
-#define POSE_REPORT_INTERVAL 16
-
 /** 
 	keys for use with the settings API
 */

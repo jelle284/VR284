@@ -222,3 +222,26 @@ std::string CHeadMountDisplayDevice::GetSerialNumber(){
 const uint32_t CHeadMountDisplayDevice::GetUniqueObjectId() {
 	return m_unObjectId;
 }
+
+void CHeadMountDisplayDevice::ReportPoseButton(PoseMessage &Pose)
+{
+	// Update values
+	m_Pose.vecPosition[0] = Pose.pos_x;
+	m_Pose.vecPosition[1] = Pose.pos_y;
+	m_Pose.vecPosition[2] = Pose.pos_z;
+
+	m_Pose.vecVelocity[0] = Pose.vel_x;
+	m_Pose.vecVelocity[1] = Pose.vel_y;
+	m_Pose.vecVelocity[2] = Pose.vel_z;
+
+	m_Pose.qRotation.w = Pose.quat_w;
+	m_Pose.qRotation.x = Pose.quat_x;
+	m_Pose.qRotation.y = Pose.quat_y;
+	m_Pose.qRotation.z = Pose.quat_z;
+
+	// Report pose
+	if (m_unObjectId != vr::k_unTrackedDeviceIndexInvalid)
+	{
+		vr::VRServerDriverHost()->TrackedDevicePoseUpdated(m_unObjectId, m_Pose, sizeof(DriverPose_t));
+	}
+}

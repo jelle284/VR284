@@ -62,6 +62,8 @@ public:
 	*/
 	const uint32_t GetUniqueObjectId();
 
+	void ReportPoseButton(PoseMessage &Pose);
+
 private:
 	string m_sSerialNumber;					//< serial number
 	uint32_t m_nUniqueObjectId;				//< unique object id which set by active function
@@ -70,7 +72,6 @@ private:
 	vr::VRControllerState_t m_ControllerState;//< controller state
 	vr::PropertyContainerHandle_t m_PropertyContainerHandle;//< set/get property
 	char m_cControllerRole; 				//< 'L' or 'R' controller.
-	std::chrono::milliseconds m_nReportPoseInterval;			//< report controller's pose interval.
 
 	float m_fHmdXPositionOffset;	//< six dof tracking module X position offset.
 	float m_fHmdYPositionOffset;	//< six dof tracking module Y position offset.

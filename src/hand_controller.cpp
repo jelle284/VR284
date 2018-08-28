@@ -40,10 +40,9 @@ CHandControllerDevice::CHandControllerDevice(string serial_number,ETrackedContro
 	m_fHmdZPositionOffset = vr::VRSettings()->GetFloat( k_pch_Sample_Section, k_pch_Sample_HmdZPositionOffset_Float );
     m_bTopCamera = vr::VRSettings()->GetBool( k_pch_Sample_Section, k_pch_Sample_TopCamera );
     m_bCameraHeight = vr::VRSettings()->GetFloat( k_pch_Sample_Section, k_pch_Sample_CameraHeight );
-	m_nReportPoseInterval = std::chrono::milliseconds( POSE_REPORT_INTERVAL );
 	
 	//init m_ControllerState,m_PropertyContainerHandle
-	memset( &m_ControllerState, 0, sizeof( m_ControllerState ) );
+	memset( &m_ControllerState, 0, sizeof( m_ControllerState ) ); // outdated
 	m_PropertyContainerHandle = vr::k_ulInvalidPropertyContainer;
 	
 }
@@ -127,4 +126,31 @@ const char *CHandControllerDevice::GetSerialNumber(){
 
 const uint32_t CHandControllerDevice::GetUniqueObjectId(){
     return m_nUniqueObjectId;
+}
+
+void CHandControllerDevice::ReportPoseButton(PoseMessage &Pose)
+{
+	// Update values
+	m_Pose.vecPosition[0] = Pose.pos_x;
+	m_Pose.vecPosition[1] = Pose.pos_y;
+	m_Pose.vecPosition[2] = Pose.pos_z;
+
+	m_Pose.vecVelocity[0] = Pose.vel_x;
+	m_Pose.vecVelocity[1] = Pose.vel_y;
+	m_Pose.vecVelocity[2] = Pose.vel_z;
+
+	m_Pose.qRotation.w = Pose.quat_w;
+	m_Pose.qRotation.x = Pose.quat_x;
+	m_Pose.qRotation.y = Pose.quat_y;
+	m_Pose.qRotation.z = Pose.quat_z;
+
+	// Report pose
+	if (m_nUniqueObjectId != vr::k_unTrackedDeviceIndexInvalid)
+	{
+		vr::VRServerDriverHost()->TrackedDevicePoseUpdated(m_nUniqueObjectId, m_Pose, sizeof(DriverPose_t));
+	}
+
+	// Report buttons
+	vr::VRDriverInput()->UpdateBooleanComponent(btn_menu, (0x8000 & GetAsyncKeyState('A')) != 0, 0);
+	vr::VRDriverInput()->UpdateBooleanComponent(btn_trigger, Pose.TriggerBtn, 0);
 }

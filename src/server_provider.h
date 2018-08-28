@@ -19,7 +19,7 @@ using namespace vr;
 /**
 	CServerProvider is requested and used in vrserver to query tracking and other information about tracked devices	
 */
-class CServerProvider : public IServerTrackedDeviceProvider{
+class CServerProvider : public IServerTrackedDeviceProvider {
 public:
 	/**
 		Constructor
@@ -60,12 +60,19 @@ public:
 	virtual void LeaveStandby() override;
 
 private:
-	tracking_client *m_pTrackingClient;
-	CHeadMountDisplayDevice *m_pHeadMountDisplay; //< pointer to HMD
-	CHandControllerDevice *m_pHandController[HAND_CONTROLLER_COUNT]; //< pointer to hand controllers
+	CHeadMountDisplayDevice *m_pHeadMountDisplay;						//< pointer to HMD
+	CHandControllerDevice *m_pHandController[HAND_CONTROLLER_COUNT];	//< pointer to hand controllers
 
-	bool m_bControllerState[HAND_CONTROLLER_COUNT];								//< true:controller is connect  false: controller is disconnect
-	static	CServerProvider *m_pThis;							//< use to static member pointer this.
+	bool m_bControllerState[HAND_CONTROLLER_COUNT];						//< true:controller is connect  false: controller is disconnect
+	static	CServerProvider *m_pThis;									//< use to static member pointer this.
+
+	/* Worker thread */
+	void PoseUpdateThread();
+	bool b_running; // thread is running
+	std::thread *pThread;
+
+	tracking_client* pTracker;
+	PoseMessage PoseBuffer;
 };
 
 #endif

@@ -6,7 +6,7 @@
 #include "common.h"
 #include "driverlog.h"
 
-
+/* Tracking client class. Recieves tracking information and updates tracked devices. */
 class tracking_client
 {
 private:
@@ -16,25 +16,14 @@ private:
 	timeval timeout;
 	fd_set fds_master;
 
-	/* Worker thread */
-	void UpdateThread();
-	bool b_running; // thread is running
-	std::thread *pThread;
-
-	/* Convert pose to openVR api. */
-	vr::DriverPose_t GetPoseFromUDP(PoseMessage Pose);
 public:
-
-	/* ID of tracked devices */
-	vr::TrackedDeviceIndex_t HMD, RHController, LHController;
-
 	tracking_client();
 	~tracking_client();
 	
 	/*Ask server for list of connected devices*/
 	std::string GetDeviceList();
 
-	void Start();
-	void Stop();
+	/* Recieve a pose message from socket. Timeout 1 sec */
+	PoseMessage GetPoseFromUDP();
 };
 

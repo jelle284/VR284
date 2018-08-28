@@ -65,6 +65,9 @@ public:
 	std::string GetSerialNumber();
 	const uint32_t GetUniqueObjectId();
 
+	/* */
+	void ReportPoseButton(PoseMessage &Pose);
+
 private:
 	vr::TrackedDeviceIndex_t m_unObjectId;//< unique id ,set by vrserver through Activate function
 	vr::PropertyContainerHandle_t m_ulPropertyContainer;//< use to set/get property
