@@ -24,6 +24,6 @@ public:
 	std::string GetDeviceList();
 
 	/* Recieve a pose message from socket. Timeout 1 sec */
-	PoseMessage GetPoseFromUDP();
+	PoseMessage_t GetPoseFromUDP();
 };
 

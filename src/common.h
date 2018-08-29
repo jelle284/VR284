@@ -11,7 +11,7 @@
 #include <windows.h>
 
 #include "Tracking_api.h"
-#include "tracking_client.h"
+//#include "tracking_client.h"
 
 //namespace
 using namespace std;
@@ -42,6 +42,26 @@ inline void HmdMatrix_SetIdentity( HmdMatrix34_t *pMatrix )
 	pMatrix->m[2][1] = 0.f;
 	pMatrix->m[2][2] = 1.f;
 	pMatrix->m[2][3] = 0.f;
+}
+
+inline void PoseMessageToOpenVR(PoseMessage_t &PoseMessage, DriverPose_t &DriverPose)
+{
+	DriverPose.vecPosition[0] = PoseMessage.pos_x;
+	DriverPose.vecPosition[1] = PoseMessage.pos_y;
+	DriverPose.vecPosition[2] = PoseMessage.pos_z;
+
+	DriverPose.vecVelocity[0] = PoseMessage.vel_x;
+	DriverPose.vecVelocity[1] = PoseMessage.vel_y;
+	DriverPose.vecVelocity[2] = PoseMessage.vel_z;
+
+	DriverPose.qRotation.w = PoseMessage.quat_w;
+	DriverPose.qRotation.x = PoseMessage.quat_x;
+	DriverPose.qRotation.y = PoseMessage.quat_y;
+	DriverPose.qRotation.z = PoseMessage.quat_z;
+
+	DriverPose.vecAngularVelocity[0] = PoseMessage.ang_vel_x;
+	DriverPose.vecAngularVelocity[1] = PoseMessage.ang_vel_x;
+	DriverPose.vecAngularVelocity[2] = PoseMessage.ang_vel_x;
 }
 
 typedef enum HAND_CONTROLLER{

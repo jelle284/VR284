@@ -58,9 +58,9 @@ std::string tracking_client::GetDeviceList()
 	return std::string(buffer);
 }
 
-PoseMessage tracking_client::GetPoseFromUDP()
+PoseMessage_t tracking_client::GetPoseFromUDP()
 {
-	PoseMessage Pose;
+	PoseMessage_t Pose;
 	fd_set fds_copy = fds_master;
 	int sockcount = select(s + 1, &fds_copy, NULL, NULL, &timeout);
 	if (sockcount > 0) {

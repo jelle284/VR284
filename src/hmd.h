@@ -66,7 +66,7 @@ public:
 	const uint32_t GetUniqueObjectId();
 
 	/* */
-	void ReportPoseButton(PoseMessage &Pose);
+	void ReportPoseButton(PoseMessage_t &Pose);
 
 private:
 	vr::TrackedDeviceIndex_t m_unObjectId;//< unique id ,set by vrserver through Activate function
@@ -85,14 +85,12 @@ private:
 	float m_flDisplayFrequency;			//< display frequency
 	float m_flIPD;						//< IPD
 
-	float m_fDistortionK1;				//<barrel distort parameter K1
-	float m_fDistortionK2;				//<barrel distort parameter K2
+	/* Barrel distortion parameters. */
+	float	m_fDistortionK1[3];
 	float m_fZoomWidth;					//<width zoom scale 
 	float m_fZoomHeight;				//<height zoom scale	
 
 	vr::DriverPose_t m_Pose;			//HMD pose.
-	bool m_bTopCamera;
-	double m_bCameraHeight;
 
 };
 #endif

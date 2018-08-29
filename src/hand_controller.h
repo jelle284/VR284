@@ -62,7 +62,7 @@ public:
 	*/
 	const uint32_t GetUniqueObjectId();
 
-	void ReportPoseButton(PoseMessage &Pose);
+	void ReportPoseButton(PoseMessage_t &Pose);
 
 private:
 	string m_sSerialNumber;					//< serial number
@@ -80,7 +80,7 @@ private:
     double m_bCameraHeight;
 
 	// vr284
-	vr::VRInputComponentHandle_t btn_menu, btn_trigger;
+	vr::VRInputComponentHandle_t HButtons[BUTTON_COUNT], HAnalog[ANALOG_COUNT];
 };
 
 #endif

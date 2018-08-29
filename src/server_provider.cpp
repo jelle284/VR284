@@ -76,7 +76,7 @@ void CServerProvider::PoseUpdateThread()
 	b_running = true;
 	Sleep(1 * 1000);
 	while (b_running) {
-		PoseMessage pose = pTracker->GetPoseFromUDP();
+		PoseMessage_t pose = pTracker->GetPoseFromUDP();
 			switch (pose.tag) {
 			case DEVICE_TAG_HMD:
 				m_pHeadMountDisplay->ReportPoseButton(pose);

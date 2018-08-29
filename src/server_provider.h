@@ -13,6 +13,7 @@
 #include "common.h"
 #include "hmd.h"
 #include "hand_controller.h"
+#include "tracking_client.h"
 
 
 using namespace vr;
@@ -72,7 +73,6 @@ private:
 	std::thread *pThread;
 
 	tracking_client* pTracker;
-	PoseMessage PoseBuffer;
 };
 
 #endif

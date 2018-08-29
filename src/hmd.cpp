@@ -24,12 +24,12 @@ CHeadMountDisplayDevice::CHeadMountDisplayDevice(){
 	m_nRenderHeight = vr::VRSettings()->GetInt32( k_pch_Sample_Section, k_pch_Sample_RenderHeight_Int32 );
 	m_flSecondsFromVsyncToPhotons = vr::VRSettings()->GetFloat( k_pch_Sample_Section, k_pch_Sample_SecondsFromVsyncToPhotons_Float );
 	m_flDisplayFrequency = vr::VRSettings()->GetFloat( k_pch_Sample_Section, k_pch_Sample_DisplayFrequency_Float );
-    m_bTopCamera = vr::VRSettings()->GetBool( k_pch_Sample_Section, k_pch_Sample_TopCamera );
-    m_bCameraHeight = vr::VRSettings()->GetFloat( k_pch_Sample_Section, k_pch_Sample_CameraHeight );
 
-	m_fDistortionK1 = 0.92f;
-	m_fDistortionK2 = 0.96f;
-	m_fZoomWidth = 0.8f;
+	/* Distortion parameters found with OSVR distortionizer tool. */
+	m_fDistortionK1[0] = 0.814993;
+	m_fDistortionK1[1] = 1.02499;
+	m_fDistortionK1[2] = 1.143;
+	m_fZoomWidth = 1.0f;
 	m_fZoomHeight = 1.0f;
 	
 	//init m_pose struct
@@ -191,26 +191,29 @@ DistortionCoordinates_t CHeadMountDisplayDevice::ComputeDistortion( EVREye eEye,
 {
 	DistortionCoordinates_t coordinates;
 	//add distortion for lens
-	float hX;
-	float hY;
+	float hX[3];
+	float hY[3];
 	double rr;
-	double r2;
+	double r2[3];
 	double theta;	
 
 	//The formula is derived from this video:https://www.youtube.com/watch?v=B7qrgrrHry0&feature=youtu.be
     //and Distortion correction algorithm for Wikipedia:https://en.wikipedia.org/wiki/Distortion_(optics)#Software_correction
 	rr = sqrt((fU - 0.5f)*(fU - 0.5f) + (fV - 0.5f)*(fV - 0.5f));
-	r2 = rr * (1 + m_fDistortionK1*(rr*rr) + m_fDistortionK2*(rr*rr*rr*rr));
 	theta = atan2(fU-0.5f, fV-0.5f);
-	hX = sin(theta)*r2*m_fZoomWidth;
-	hY = cos(theta)*r2*m_fZoomHeight;
-	
-	coordinates.rfBlue[0] = hX + 0.5f;
-	coordinates.rfBlue[1] = hY + 0.5f;
-	coordinates.rfGreen[0] = hX + 0.5f;
-	coordinates.rfGreen[1] = hY + 0.5f;
-	coordinates.rfRed[0] = hX + 0.5f;
-	coordinates.rfRed[1] = hY + 0.5f;
+
+	for (int i = 0; i < 3; i++) {
+		r2[i] = rr * (1 + m_fDistortionK1[i] * (rr*rr));
+		hX[i] = sin(theta)*r2[i]*m_fZoomWidth;
+		hY[i] = cos(theta)*r2[i]*m_fZoomHeight;
+	}
+
+	coordinates.rfRed[0] = hX[0] + 0.5f;
+	coordinates.rfRed[1] = hY[0] + 0.5f;
+	coordinates.rfGreen[0] = hX[1] + 0.5f;
+	coordinates.rfGreen[1] = hY[1] + 0.5f;
+	coordinates.rfBlue[0] = hX[2] + 0.5f;
+	coordinates.rfBlue[1] = hY[2] + 0.5f;
 
 	return coordinates;
 }
@@ -223,21 +226,10 @@ const uint32_t CHeadMountDisplayDevice::GetUniqueObjectId() {
 	return m_unObjectId;
 }
 
-void CHeadMountDisplayDevice::ReportPoseButton(PoseMessage &Pose)
+void CHeadMountDisplayDevice::ReportPoseButton(PoseMessage_t &Pose)
 {
 	// Update values
-	m_Pose.vecPosition[0] = Pose.pos_x;
-	m_Pose.vecPosition[1] = Pose.pos_y;
-	m_Pose.vecPosition[2] = Pose.pos_z;
-
-	m_Pose.vecVelocity[0] = Pose.vel_x;
-	m_Pose.vecVelocity[1] = Pose.vel_y;
-	m_Pose.vecVelocity[2] = Pose.vel_z;
-
-	m_Pose.qRotation.w = Pose.quat_w;
-	m_Pose.qRotation.x = Pose.quat_x;
-	m_Pose.qRotation.y = Pose.quat_y;
-	m_Pose.qRotation.z = Pose.quat_z;
+	PoseMessageToOpenVR(Pose, m_Pose);
 
 	// Report pose
 	if (m_unObjectId != vr::k_unTrackedDeviceIndexInvalid)
