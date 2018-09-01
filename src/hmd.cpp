@@ -25,10 +25,13 @@ CHeadMountDisplayDevice::CHeadMountDisplayDevice(){
 	m_flSecondsFromVsyncToPhotons = vr::VRSettings()->GetFloat( k_pch_Sample_Section, k_pch_Sample_SecondsFromVsyncToPhotons_Float );
 	m_flDisplayFrequency = vr::VRSettings()->GetFloat( k_pch_Sample_Section, k_pch_Sample_DisplayFrequency_Float );
 
-	/* Distortion parameters found with OSVR distortionizer tool. */
-	m_fDistortionK1[0] = 0.814993;
-	m_fDistortionK1[1] = 1.02499;
-	m_fDistortionK1[2] = 1.143;
+	/* Distortion parameters */
+	m_fDistortionK1[0] = 1.0f;
+	m_fDistortionK1[1] = 1.0f;
+	m_fDistortionK1[2] = 1.0f;
+	m_fDistortionK2[0] = 1.0f;
+	m_fDistortionK2[1] = 1.0f;
+	m_fDistortionK2[2] = 1.0f;
 	m_fZoomWidth = 1.0f;
 	m_fZoomHeight = 1.0f;
 	
@@ -109,12 +112,19 @@ EVRInitError CHeadMountDisplayDevice::Activate(uint32_t unObjectId){
 		vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceStandby_String, "{VR284}/icons/headset_sample_status_standby.png" );
 		vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceAlertLow_String, "{VR284}/icons/headset_sample_status_ready_low.png" );
 	}
+
+#ifdef Distortionizer
+	m_tDistortionizer = std::thread(&CHeadMountDisplayDevice::DistortionizerThread, this);
+#endif
 	return VRInitError_None;
 }
 
 void CHeadMountDisplayDevice::Deactivate(){
 	DriverLog("CHeadMountDisplayDevice::Deactive: enter\n");
 	m_unObjectId = vr::k_unTrackedDeviceIndexInvalid;
+#ifdef Distortionizer
+	m_bDistortionizerRunning = false;
+#endif
 }
 
 void CHeadMountDisplayDevice::EnterStandby(){
@@ -203,7 +213,7 @@ DistortionCoordinates_t CHeadMountDisplayDevice::ComputeDistortion( EVREye eEye,
 	theta = atan2(fU-0.5f, fV-0.5f);
 
 	for (int i = 0; i < 3; i++) {
-		r2[i] = rr * (1 + m_fDistortionK1[i] * (rr*rr));
+		r2[i] = rr * (1 + m_fDistortionK1[i] * (rr*rr) + m_fDistortionK2[i] * (rr*rr*rr*rr));
 		hX[i] = sin(theta)*r2[i]*m_fZoomWidth;
 		hY[i] = cos(theta)*r2[i]*m_fZoomHeight;
 	}
@@ -237,3 +247,83 @@ void CHeadMountDisplayDevice::ReportPoseButton(PoseMessage_t &Pose)
 		vr::VRServerDriverHost()->TrackedDevicePoseUpdated(m_unObjectId, m_Pose, sizeof(DriverPose_t));
 	}
 }
+
+#ifdef Distortionizer
+/*
+Change distortion in real time:
+https://github.com/ValveSoftware/openvr/issues/389
+*/
+void CHeadMountDisplayDevice::DistortionizerThread()
+{
+	int i = 0, k = 1;
+	m_bDistortionizerRunning = true;
+	
+	for (int i = 0; i < 3; i++) {
+		m_fDistortionK1[i] = 1.0f;
+		m_fDistortionK2[i] = 1.0f;
+	}
+
+	while (m_bDistortionizerRunning) {
+
+		if ((0x01 & GetAsyncKeyState(VK_NUMPAD1)) != 0) {
+			i = 0;
+		}
+		if ((0x01 & GetAsyncKeyState(VK_NUMPAD2)) != 0) {
+			i = 1;
+		}
+		if ((0x01 & GetAsyncKeyState(VK_NUMPAD3)) != 0) {
+			i = 2;
+		}
+		if ((0x01 & GetAsyncKeyState(VK_DOWN)) != 0) {
+			k = 1;
+		}
+		if ((0x01 & GetAsyncKeyState(VK_UP)) != 0) {
+			k = 2;
+		}
+		if ((0x01 & GetAsyncKeyState(VK_LEFT)) != 0) {
+			switch (k) {
+			case 1:
+				m_fDistortionK1[i] -= 0.05;
+				break;
+			case 2:
+				m_fDistortionK2[i] -= 0.05;
+			default:
+				break;
+			}
+		}
+		if ((0x01 & GetAsyncKeyState(VK_RIGHT)) != 0) {
+			switch (k) {
+			case 1:
+				m_fDistortionK1[i] += 0.05;
+				break;
+			case 2:
+				m_fDistortionK2[i] += 0.05;
+			default:
+				break;
+			}
+		}
+
+		if ((0x01 & GetAsyncKeyState('W')) != 0) {
+			m_fZoomHeight += 0.05;
+		}
+		if ((0x01 & GetAsyncKeyState('A')) != 0) {
+			m_fZoomWidth -= 0.05;
+		}
+		if ((0x01 & GetAsyncKeyState('D')) != 0) {
+			m_fZoomWidth += 0.05;
+		}
+		if ((0x01 & GetAsyncKeyState('S')) != 0) {
+			m_fZoomHeight -= 0.05;
+		}
+
+		vr::VRServerDriverHost()->VendorSpecificEvent(m_unObjectId, vr::VREvent_LensDistortionChanged, vr::VREvent_Data_t(), 0.0f);
+		std::this_thread::sleep_for(200ms);
+	}
+
+	DriverLog("Distortion settings changed:\n");
+	DriverLog("K1: %1.2f, %1.2f, %1.2f\n", m_fDistortionK1[0], m_fDistortionK1[1], m_fDistortionK1[2]);
+	DriverLog("K2: %1.2f, %1.2f, %1.2f\n", m_fDistortionK2[0], m_fDistortionK2[1], m_fDistortionK2[2]);
+	DriverLog("Zoom Height: %1.2f\n", m_fZoomHeight);
+	DriverLog("Zoom Width: %1.2f\n", m_fZoomWidth);
+}
+#endif

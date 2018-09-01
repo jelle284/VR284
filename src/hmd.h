@@ -65,8 +65,11 @@ public:
 	std::string GetSerialNumber();
 	const uint32_t GetUniqueObjectId();
 
-	/* */
+	/* Updates pose */
 	void ReportPoseButton(PoseMessage_t &Pose);
+
+	/* Distortionizer */
+	void DistortionizerThread();
 
 private:
 	vr::TrackedDeviceIndex_t m_unObjectId;//< unique id ,set by vrserver through Activate function
@@ -86,9 +89,14 @@ private:
 	float m_flIPD;						//< IPD
 
 	/* Barrel distortion parameters. */
-	float	m_fDistortionK1[3];
+	float m_fDistortionK1[3], m_fDistortionK2[3];
 	float m_fZoomWidth;					//<width zoom scale 
-	float m_fZoomHeight;				//<height zoom scale	
+	float m_fZoomHeight;				//<height zoom scale
+
+#ifdef Distortionizer
+	std::thread m_tDistortionizer;
+	bool m_bDistortionizerRunning;
+#endif
 
 	vr::DriverPose_t m_Pose;			//HMD pose.
 

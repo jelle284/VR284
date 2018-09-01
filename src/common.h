@@ -11,7 +11,8 @@
 #include <windows.h>
 
 #include "Tracking_api.h"
-//#include "tracking_client.h"
+
+//#define Distortionizer
 
 //namespace
 using namespace std;
