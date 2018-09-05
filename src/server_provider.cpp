@@ -72,24 +72,40 @@ void CServerProvider::LeaveStandby(){
 
 void CServerProvider::PoseUpdateThread()
 {
+	bool distortion_on = false;
 	DriverLog("Pose update thread entry\n.");
 	b_running = true;
 	Sleep(1 * 1000);
 	while (b_running) {
 		PoseMessage_t pose = pTracker->GetPoseFromUDP();
 			switch (pose.tag) {
+
 			case DEVICE_TAG_HMD:
 				m_pHeadMountDisplay->ReportPoseButton(pose);
 				break;
+
 			case DEVICE_TAG_RIGHT_HAND_CONTROLLER:
 				m_pHandController[RIGHT_HAND_CONTROLLER]->ReportPoseButton(pose);
 				break;
+
 			case DEVICE_TAG_LEFT_HAND_CONTROLLER:
 				m_pHandController[LEFT_HAND_CONTROLLER]->ReportPoseButton(pose);
 				break;
+
 			default:
 				break;
 			}
+
+			// Toggle distortion on/off
+			if ((0x01 & GetAsyncKeyState('T')) != 0) {
+				distortion_on = !distortion_on;
+				DriverLog((distortion_on ? "Distortion on.\n" : "Distortion off.\n"));
+			}
+
+			if (distortion_on) {
+				m_pHeadMountDisplay->ChangeDistortion();
+			}
 		}
+
 	DriverLog("Pose update thread exit\n.");
 }

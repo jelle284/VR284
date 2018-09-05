@@ -32,8 +32,11 @@ CHeadMountDisplayDevice::CHeadMountDisplayDevice(){
 	m_fDistortionK2[0] = 1.0f;
 	m_fDistortionK2[1] = 1.0f;
 	m_fDistortionK2[2] = 1.0f;
-	m_fZoomWidth = 1.0f;
-	m_fZoomHeight = 1.0f;
+	m_fZoomWidth = 0.860f;
+	m_fZoomHeight = 1.050f;
+
+	arrowkey = key_k1;
+	numpadkey = key_ALL;
 	
 	//init m_pose struct
 	memset( &m_Pose, 0, sizeof( m_Pose ) );
@@ -113,18 +116,12 @@ EVRInitError CHeadMountDisplayDevice::Activate(uint32_t unObjectId){
 		vr::VRProperties()->SetStringProperty( m_ulPropertyContainer, vr::Prop_NamedIconPathDeviceAlertLow_String, "{VR284}/icons/headset_sample_status_ready_low.png" );
 	}
 
-#ifdef Distortionizer
-	m_tDistortionizer = std::thread(&CHeadMountDisplayDevice::DistortionizerThread, this);
-#endif
 	return VRInitError_None;
 }
 
 void CHeadMountDisplayDevice::Deactivate(){
 	DriverLog("CHeadMountDisplayDevice::Deactive: enter\n");
 	m_unObjectId = vr::k_unTrackedDeviceIndexInvalid;
-#ifdef Distortionizer
-	m_bDistortionizerRunning = false;
-#endif
 }
 
 void CHeadMountDisplayDevice::EnterStandby(){
@@ -248,82 +245,132 @@ void CHeadMountDisplayDevice::ReportPoseButton(PoseMessage_t &Pose)
 	}
 }
 
-#ifdef Distortionizer
-/*
-Change distortion in real time:
-https://github.com/ValveSoftware/openvr/issues/389
-*/
-void CHeadMountDisplayDevice::DistortionizerThread()
+void CHeadMountDisplayDevice::ChangeDistortion()
 {
-	int i = 0, k = 1;
-	m_bDistortionizerRunning = true;
+	bool updated = false;
+	// NUMPAD
+	if ((0x01 & GetAsyncKeyState(VK_NUMPAD1)) != 0) {
+		numpadkey = key_RED;
+		DriverLog("Distortion: RED color selected.\n");
+	}
+	if ((0x01 & GetAsyncKeyState(VK_NUMPAD2)) != 0) {
+		numpadkey = key_GREEN;
+		DriverLog("Distortion: GREEN color selected.\n");
+	}
+	if ((0x01 & GetAsyncKeyState(VK_NUMPAD3)) != 0) {
+		numpadkey = key_BLUE;
+		DriverLog("Distortion: BLUE color selected.\n");
+	}
+	if ((0x01 & GetAsyncKeyState(VK_NUMPAD4)) != 0) {
+		numpadkey = key_ALL;
+		DriverLog("Distortion: ALL colors selected.\n");
+	}
+
+	// ARROWS
+	if ((0x01 & GetAsyncKeyState(VK_DOWN)) != 0) {
+		arrowkey = key_k1;
+		DriverLog("Distortion: K1 parameter selected.\n");
+	}
+	if ((0x01 & GetAsyncKeyState(VK_UP)) != 0) {
+		arrowkey = key_k2;
+		DriverLog("Distortion: K2 parameter selected.\n");
+	}
+	if ((0x01 & GetAsyncKeyState(VK_LEFT)) != 0) {
+		switch (arrowkey) {
+		case key_k1:
+			if (numpadkey == key_ALL) {
+				for (auto & elements : m_fDistortionK1) {
+					elements -= 0.005;
+				}
+			}
+			else m_fDistortionK1[numpadkey] -= 0.005;
+			updated = true;
+			break;
+
+		case key_k2:
+			if (numpadkey == key_ALL) {
+				for (auto & elements : m_fDistortionK2) {
+					elements -= 0.005;
+				}
+			}
+			else m_fDistortionK2[numpadkey] -= 0.005;
+			updated = true;
+			break;
+
+		default:
+			break;
+		}
+	}
+	if ((0x01 & GetAsyncKeyState(VK_RIGHT)) != 0) {
+		switch (arrowkey) {
+		case key_k1:
+			if (numpadkey == key_ALL) {
+				for (auto & elements : m_fDistortionK1) {
+					elements += 0.005;
+				}
+			}
+			else m_fDistortionK1[numpadkey] += 0.005;
+			updated = true;
+			break;
+
+		case key_k2:
+			if (numpadkey == key_ALL) {
+				for (auto & elements : m_fDistortionK2) {
+					elements += 0.005;
+				}
+			}
+			else m_fDistortionK2[numpadkey] += 0.005;
+			updated = true;
+			break;
+		default:
+			break;
+		}
+	}
+
+	// WSAD
+	if ((0x01 & GetAsyncKeyState('W')) != 0) {
+		m_fZoomHeight += 0.01;
+		updated = true;
+	}
+	if ((0x01 & GetAsyncKeyState('A')) != 0) {
+		m_fZoomWidth -= 0.01;
+		updated = true;
+	}
+	if ((0x01 & GetAsyncKeyState('D')) != 0) {
+		m_fZoomWidth += 0.01;
+		updated = true;
+	}
+	if ((0x01 & GetAsyncKeyState('S')) != 0) {
+		m_fZoomHeight -= 0.01;
+		updated = true;
+	}
+
+	// Save coordinates
+	if ((0x01 & GetAsyncKeyState(VK_SPACE)) != 0) {
+		DriverLog("K1: %1.3f, %1.3f, %1.3f\n", m_fDistortionK1[0], m_fDistortionK1[1], m_fDistortionK1[2]);
+		DriverLog("K2: %1.3f, %1.3f, %1.3f\n", m_fDistortionK2[0], m_fDistortionK2[1], m_fDistortionK2[2]);
+
+		DriverLog("Zoom Height: %1.3f\n", m_fZoomHeight);
+		DriverLog("Zoom Width: %1.3f\n", m_fZoomWidth);
+
+		m_fDistortionK1[0] = 1.0f;
+		m_fDistortionK1[1] = 1.0f;
+		m_fDistortionK1[2] = 1.0f;
+		m_fDistortionK2[0] = 1.0f;
+		m_fDistortionK2[1] = 1.0f;
+		m_fDistortionK2[2] = 1.0f;
+		m_fZoomWidth = 1.0f;
+		m_fZoomHeight = 1.0f;
+		updated = true;
+	}
+	if (updated) {
+		vr::VRServerDriverHost()->VendorSpecificEvent(
+			m_unObjectId, 
+			vr::VREvent_LensDistortionChanged, 
+			vr::VREvent_Data_t(), 
+			0.0f
+		);
+	}
+
+	}
 	
-	for (int i = 0; i < 3; i++) {
-		m_fDistortionK1[i] = 1.0f;
-		m_fDistortionK2[i] = 1.0f;
-	}
-
-	while (m_bDistortionizerRunning) {
-
-		if ((0x01 & GetAsyncKeyState(VK_NUMPAD1)) != 0) {
-			i = 0;
-		}
-		if ((0x01 & GetAsyncKeyState(VK_NUMPAD2)) != 0) {
-			i = 1;
-		}
-		if ((0x01 & GetAsyncKeyState(VK_NUMPAD3)) != 0) {
-			i = 2;
-		}
-		if ((0x01 & GetAsyncKeyState(VK_DOWN)) != 0) {
-			k = 1;
-		}
-		if ((0x01 & GetAsyncKeyState(VK_UP)) != 0) {
-			k = 2;
-		}
-		if ((0x01 & GetAsyncKeyState(VK_LEFT)) != 0) {
-			switch (k) {
-			case 1:
-				m_fDistortionK1[i] -= 0.05;
-				break;
-			case 2:
-				m_fDistortionK2[i] -= 0.05;
-			default:
-				break;
-			}
-		}
-		if ((0x01 & GetAsyncKeyState(VK_RIGHT)) != 0) {
-			switch (k) {
-			case 1:
-				m_fDistortionK1[i] += 0.05;
-				break;
-			case 2:
-				m_fDistortionK2[i] += 0.05;
-			default:
-				break;
-			}
-		}
-
-		if ((0x01 & GetAsyncKeyState('W')) != 0) {
-			m_fZoomHeight += 0.05;
-		}
-		if ((0x01 & GetAsyncKeyState('A')) != 0) {
-			m_fZoomWidth -= 0.05;
-		}
-		if ((0x01 & GetAsyncKeyState('D')) != 0) {
-			m_fZoomWidth += 0.05;
-		}
-		if ((0x01 & GetAsyncKeyState('S')) != 0) {
-			m_fZoomHeight -= 0.05;
-		}
-
-		vr::VRServerDriverHost()->VendorSpecificEvent(m_unObjectId, vr::VREvent_LensDistortionChanged, vr::VREvent_Data_t(), 0.0f);
-		std::this_thread::sleep_for(200ms);
-	}
-
-	DriverLog("Distortion settings changed:\n");
-	DriverLog("K1: %1.2f, %1.2f, %1.2f\n", m_fDistortionK1[0], m_fDistortionK1[1], m_fDistortionK1[2]);
-	DriverLog("K2: %1.2f, %1.2f, %1.2f\n", m_fDistortionK2[0], m_fDistortionK2[1], m_fDistortionK2[2]);
-	DriverLog("Zoom Height: %1.2f\n", m_fZoomHeight);
-	DriverLog("Zoom Width: %1.2f\n", m_fZoomWidth);
-}
-#endif

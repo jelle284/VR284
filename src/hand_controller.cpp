@@ -115,6 +115,7 @@ EVRInitError CHandControllerDevice::Activate( uint32_t unObjectId ){
 		m_PropertyContainerHandle, "/input/trigger/value", &HAnalog[ANALOG_TAG_TRIGGER],
 		vr::EVRScalarType::VRScalarType_Absolute, vr::EVRScalarUnits::VRScalarUnits_NormalizedOneSided
 	);
+
 	return vr::VRInitError_None;
 }
 

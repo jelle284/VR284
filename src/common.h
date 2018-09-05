@@ -7,12 +7,11 @@
 #include "driverlog.h"
 #include <thread>
 #include <chrono>
+#include <array>
 #define _WINSOCKAPI_
 #include <windows.h>
 
 #include "Tracking_api.h"
-
-//#define Distortionizer
 
 //namespace
 using namespace std;

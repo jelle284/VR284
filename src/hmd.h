@@ -68,8 +68,7 @@ public:
 	/* Updates pose */
 	void ReportPoseButton(PoseMessage_t &Pose);
 
-	/* Distortionizer */
-	void DistortionizerThread();
+	void ChangeDistortion();
 
 private:
 	vr::TrackedDeviceIndex_t m_unObjectId;//< unique id ,set by vrserver through Activate function
@@ -89,14 +88,19 @@ private:
 	float m_flIPD;						//< IPD
 
 	/* Barrel distortion parameters. */
-	float m_fDistortionK1[3], m_fDistortionK2[3];
+	std::array<float, 3> m_fDistortionK1, m_fDistortionK2; // RGB component
 	float m_fZoomWidth;					//<width zoom scale 
 	float m_fZoomHeight;				//<height zoom scale
-
-#ifdef Distortionizer
-	std::thread m_tDistortionizer;
-	bool m_bDistortionizerRunning;
-#endif
+	enum colorkey_t {
+		key_RED,
+		key_GREEN,
+		key_BLUE,
+		key_ALL
+	} numpadkey;
+	enum distortionkey_t {
+		key_k1,
+		key_k2
+	} arrowkey;
 
 	vr::DriverPose_t m_Pose;			//HMD pose.
 
