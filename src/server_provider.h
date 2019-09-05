@@ -13,7 +13,6 @@
 #include "common.h"
 #include "hmd.h"
 #include "hand_controller.h"
-#include "tracking_client.h"
 
 
 using namespace vr;
@@ -71,8 +70,6 @@ private:
 	void PoseUpdateThread();
 	bool b_running; // thread is running
 	std::thread *pThread;
-
-	tracking_client* pTracker;
 };
 
 #endif

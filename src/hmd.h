@@ -12,10 +12,12 @@ public:
 		constructor.
 	*/
 	CHeadMountDisplayDevice();
+
 	/**
 		destructor.
 	*/
 	~CHeadMountDisplayDevice();
+
 	//implement ITrackedDeviceServerDriver
 
 	/** This is called before an HMD is returned to the application. It will always be
@@ -68,7 +70,7 @@ public:
 	/* Updates pose */
 	void ReportPoseButton(PoseMessage_t &Pose);
 
-	void ChangeDistortion();
+	void ChangeDistortion(DistortionSettings_t distort);
 
 private:
 	vr::TrackedDeviceIndex_t m_unObjectId;//< unique id ,set by vrserver through Activate function
@@ -91,16 +93,6 @@ private:
 	std::array<float, 3> m_fDistortionK1, m_fDistortionK2; // RGB component
 	float m_fZoomWidth;					//<width zoom scale 
 	float m_fZoomHeight;				//<height zoom scale
-	enum colorkey_t {
-		key_RED,
-		key_GREEN,
-		key_BLUE,
-		key_ALL
-	} numpadkey;
-	enum distortionkey_t {
-		key_k1,
-		key_k2
-	} arrowkey;
 
 	vr::DriverPose_t m_Pose;			//HMD pose.
 

@@ -6,7 +6,7 @@ project(VR284)
 #set include
 FILE(GLOB_RECURSE HEADER_FILES_GLOB include/*.h src/*.h)
 set(HEADER_FILES include)
-set(SOURCE_FILES src/VR284.cpp src/hmd.cpp src/hand_controller.cpp src/server_provider.cpp src/driverlog.cpp src/tracking_client.cpp)
+set(SOURCE_FILES src/VR284.cpp src/hmd.cpp src/hand_controller.cpp src/server_provider.cpp src/driverlog.cpp)
 include_directories(${HEADER_FILES})
 
 #set output path

@@ -97,7 +97,6 @@ EVRInitError CHandControllerDevice::Activate( uint32_t unObjectId ){
 
 	// create button handles
 	vr::VRDriverInput()->CreateBooleanComponent(m_PropertyContainerHandle, "/input/application_menu/click", &HButtons[BUTTON_TAG_AMENU]);
-	vr::VRDriverInput()->CreateBooleanComponent(m_PropertyContainerHandle, "/input/trigger/click", &HButtons[BUTTON_TAG_TRIGGER]);
 	vr::VRDriverInput()->CreateBooleanComponent(m_PropertyContainerHandle, "/input/grip/click", &HButtons[BUTTON_TAG_GRIP]);
 	vr::VRDriverInput()->CreateBooleanComponent(m_PropertyContainerHandle, "/input/system/click", &HButtons[BUTTON_TAG_SMENU]);
 	vr::VRDriverInput()->CreateBooleanComponent(m_PropertyContainerHandle, "/input/trackpad/click", &HButtons[BUTTON_TAG_TPAD]);
@@ -159,12 +158,12 @@ void CHandControllerDevice::ReportPoseButton(PoseMessage_t &Pose)
 
 		// Report buttons
 		for (int i = 0; i < BUTTON_COUNT; i++) {
-			vr::VRDriverInput()->UpdateBooleanComponent(HButtons[i], Pose.ButtonState[i], 0);
+			vr::VRDriverInput()->UpdateBooleanComponent(HButtons[i], Pose.buttons.ButtonState[i], 0);
 		}
 
 		// Report analogs
 		for (int i = 0; i < ANALOG_COUNT; i++) {
-			vr::VRDriverInput()->UpdateScalarComponent(HAnalog[i], Pose.axis[i], 0);
+			vr::VRDriverInput()->UpdateScalarComponent(HAnalog[i], Pose.buttons.axis[i], 0);
 		}
 	}
 

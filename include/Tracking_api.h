@@ -1,6 +1,7 @@
 #pragma once
-#ifndef VR284_TRACKING_API_H_
-#define VR284_TRACKING_API_H_
+
+#define PIPE_NAME_W L"\\\\.\\pipe\\Pipe"
+#define PIPE_NAME "\\\\.\\pipe\\Pipe"
 
 enum DeviceTag_t {
 	DEVICE_TAG_HMD,
@@ -10,7 +11,6 @@ enum DeviceTag_t {
 };
 
 enum ButtonTag_t {
-	BUTTON_TAG_TRIGGER,
 	BUTTON_TAG_SMENU,
 	BUTTON_TAG_AMENU,
 	BUTTON_TAG_GRIP,
@@ -25,23 +25,69 @@ enum AnalogTag_t {
 	ANALOG_COUNT
 };
 
-/* Message struct for sending and recieving pose information. */
-struct PoseMessage_t {
-	float
-		quat_w, quat_x, quat_y, quat_z,
-		pos_x, pos_y, pos_z,
-		vel_x, vel_y, vel_z,
-		ang_vel_x, ang_vel_y, ang_vel_z,
-		axis[ANALOG_COUNT];
-	bool ButtonState[BUTTON_COUNT];
-	DeviceTag_t tag;
-	int packetNum;
-};
-
-/* Data from IMU devices and buttons*/
+/* Data from IMU devices */
 struct DataPacket_t {
-	float quat[4], acc[3], gyro[3];
-	bool TriggerBtn; // TODO: multiple buttons - flash mcu
+	float acc_gyro_mag[9];
 };
 
-#endif
+struct imu_packet_t {
+	int16_t ax, ay, az;
+	int16_t gx, gy, gz;
+	int16_t mx, my, mz;
+};
+
+struct adc_packet_t {
+	int16_t a0, a1, a2, a3;
+};
+
+/* Button information */
+struct ButtonState_t {
+	float axis[ANALOG_COUNT];
+	bool ButtonState[BUTTON_COUNT];
+};
+
+/* Pose information*/
+struct Pose_t {
+	float
+		pos[3],
+		vel[3],
+		ang_vel[3],
+		q[4];
+};
+
+/* Message struct for driver communication. */
+struct PoseMessage_t {
+	Pose_t pose;
+	DeviceTag_t tag;
+	ButtonState_t buttons;
+};
+
+struct HmdQuaternionf_t
+{
+  float w, x, y, z;
+};
+
+struct VRInitMessage {
+	bool deviceStatus[DEVICE_COUNT];
+	float IPD, k1, k2, zW, zH;
+};
+
+struct DistortionSettings_t {
+	float IPD, k1, k2, zW, zH;
+};
+
+// union
+enum udesc_t {
+	e_distort, 
+	e_poseupdate
+};
+
+union Udata {
+	DistortionSettings_t Distort;
+	PoseMessage_t Pose;
+};
+
+struct uMessage_t {
+	udesc_t descriptor;
+	Udata data;
+};

@@ -9,7 +9,8 @@ CHeadMountDisplayDevice::CHeadMountDisplayDevice(){
 	m_unObjectId = vr::k_unTrackedDeviceIndexInvalid;
 	m_ulPropertyContainer = vr::k_ulInvalidPropertyContainer;
 	
-	m_flIPD = vr::VRSettings()->GetFloat( k_pch_SteamVR_Section, k_pch_SteamVR_IPD_Float );
+	//m_flIPD = vr::VRSettings()->GetFloat( k_pch_SteamVR_Section, k_pch_SteamVR_IPD_Float );
+	m_flIPD = 0.067f;
 	vr::VRSettings()->GetString( k_pch_Sample_Section, k_pch_Sample_SerialNumber_String, buf, sizeof( buf ) );
 	m_sSerialNumber = buf;
 
@@ -32,11 +33,8 @@ CHeadMountDisplayDevice::CHeadMountDisplayDevice(){
 	m_fDistortionK2[0] = 1.0f;
 	m_fDistortionK2[1] = 1.0f;
 	m_fDistortionK2[2] = 1.0f;
-	m_fZoomWidth = 0.860f;
-	m_fZoomHeight = 1.050f;
-
-	arrowkey = key_k1;
-	numpadkey = key_ALL;
+	m_fZoomWidth = 1.0f;
+	m_fZoomHeight = 1.0f;
 	
 	//init m_pose struct
 	memset( &m_Pose, 0, sizeof( m_Pose ) );
@@ -50,12 +48,14 @@ CHeadMountDisplayDevice::CHeadMountDisplayDevice(){
 	m_Pose.qDriverFromHeadRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
 	m_Pose.poseTimeOffset = -0.016f;
 	m_Pose.vecDriverFromHeadTranslation[0] = 0.0f;
-	m_Pose.vecDriverFromHeadTranslation[1] = 0.0f;
-	m_Pose.vecDriverFromHeadTranslation[2] = 0.0f;
+	m_Pose.vecDriverFromHeadTranslation[1] = -0.2f;
+	m_Pose.vecDriverFromHeadTranslation[2] = 0.4f;
 	m_Pose.vecWorldFromDriverTranslation[0] = 0.0f;
 	m_Pose.vecWorldFromDriverTranslation[1] = 0.0f;
 	m_Pose.vecWorldFromDriverTranslation[2] = 0.0f;
 }
+
+
 
 CHeadMountDisplayDevice::~CHeadMountDisplayDevice(){
 }
@@ -245,132 +245,29 @@ void CHeadMountDisplayDevice::ReportPoseButton(PoseMessage_t &Pose)
 	}
 }
 
-void CHeadMountDisplayDevice::ChangeDistortion()
+void CHeadMountDisplayDevice::ChangeDistortion(DistortionSettings_t distort)
 {
-	bool updated = false;
-	// NUMPAD
-	if ((0x01 & GetAsyncKeyState(VK_NUMPAD1)) != 0) {
-		numpadkey = key_RED;
-		DriverLog("Distortion: RED color selected.\n");
+	for (auto & elements : m_fDistortionK1) {
+		elements = distort.k1;
 	}
-	if ((0x01 & GetAsyncKeyState(VK_NUMPAD2)) != 0) {
-		numpadkey = key_GREEN;
-		DriverLog("Distortion: GREEN color selected.\n");
+	for (auto & elements : m_fDistortionK2) {
+		elements = distort.k2;
 	}
-	if ((0x01 & GetAsyncKeyState(VK_NUMPAD3)) != 0) {
-		numpadkey = key_BLUE;
-		DriverLog("Distortion: BLUE color selected.\n");
-	}
-	if ((0x01 & GetAsyncKeyState(VK_NUMPAD4)) != 0) {
-		numpadkey = key_ALL;
-		DriverLog("Distortion: ALL colors selected.\n");
-	}
+	m_fZoomHeight = distort.zH;
+	m_fZoomWidth = distort.zW;
 
-	// ARROWS
-	if ((0x01 & GetAsyncKeyState(VK_DOWN)) != 0) {
-		arrowkey = key_k1;
-		DriverLog("Distortion: K1 parameter selected.\n");
-	}
-	if ((0x01 & GetAsyncKeyState(VK_UP)) != 0) {
-		arrowkey = key_k2;
-		DriverLog("Distortion: K2 parameter selected.\n");
-	}
-	if ((0x01 & GetAsyncKeyState(VK_LEFT)) != 0) {
-		switch (arrowkey) {
-		case key_k1:
-			if (numpadkey == key_ALL) {
-				for (auto & elements : m_fDistortionK1) {
-					elements -= 0.005;
-				}
-			}
-			else m_fDistortionK1[numpadkey] -= 0.005;
-			updated = true;
-			break;
+	vr::VRServerDriverHost()->VendorSpecificEvent(
+		m_unObjectId, 
+		vr::VREvent_LensDistortionChanged, 
+		vr::VREvent_Data_t(), 
+		0.0f
+	);
+	vr::VRServerDriverHost()->VendorSpecificEvent(
+		m_unObjectId,
+		vr::VREvent_IpdChanged,
+		vr::VREvent_Data_t(),
+		0.0f
+	);
 
-		case key_k2:
-			if (numpadkey == key_ALL) {
-				for (auto & elements : m_fDistortionK2) {
-					elements -= 0.005;
-				}
-			}
-			else m_fDistortionK2[numpadkey] -= 0.005;
-			updated = true;
-			break;
-
-		default:
-			break;
-		}
-	}
-	if ((0x01 & GetAsyncKeyState(VK_RIGHT)) != 0) {
-		switch (arrowkey) {
-		case key_k1:
-			if (numpadkey == key_ALL) {
-				for (auto & elements : m_fDistortionK1) {
-					elements += 0.005;
-				}
-			}
-			else m_fDistortionK1[numpadkey] += 0.005;
-			updated = true;
-			break;
-
-		case key_k2:
-			if (numpadkey == key_ALL) {
-				for (auto & elements : m_fDistortionK2) {
-					elements += 0.005;
-				}
-			}
-			else m_fDistortionK2[numpadkey] += 0.005;
-			updated = true;
-			break;
-		default:
-			break;
-		}
-	}
-
-	// WSAD
-	if ((0x01 & GetAsyncKeyState('W')) != 0) {
-		m_fZoomHeight += 0.01;
-		updated = true;
-	}
-	if ((0x01 & GetAsyncKeyState('A')) != 0) {
-		m_fZoomWidth -= 0.01;
-		updated = true;
-	}
-	if ((0x01 & GetAsyncKeyState('D')) != 0) {
-		m_fZoomWidth += 0.01;
-		updated = true;
-	}
-	if ((0x01 & GetAsyncKeyState('S')) != 0) {
-		m_fZoomHeight -= 0.01;
-		updated = true;
-	}
-
-	// Save coordinates
-	if ((0x01 & GetAsyncKeyState(VK_SPACE)) != 0) {
-		DriverLog("K1: %1.3f, %1.3f, %1.3f\n", m_fDistortionK1[0], m_fDistortionK1[1], m_fDistortionK1[2]);
-		DriverLog("K2: %1.3f, %1.3f, %1.3f\n", m_fDistortionK2[0], m_fDistortionK2[1], m_fDistortionK2[2]);
-
-		DriverLog("Zoom Height: %1.3f\n", m_fZoomHeight);
-		DriverLog("Zoom Width: %1.3f\n", m_fZoomWidth);
-
-		m_fDistortionK1[0] = 1.0f;
-		m_fDistortionK1[1] = 1.0f;
-		m_fDistortionK1[2] = 1.0f;
-		m_fDistortionK2[0] = 1.0f;
-		m_fDistortionK2[1] = 1.0f;
-		m_fDistortionK2[2] = 1.0f;
-		m_fZoomWidth = 1.0f;
-		m_fZoomHeight = 1.0f;
-		updated = true;
-	}
-	if (updated) {
-		vr::VRServerDriverHost()->VendorSpecificEvent(
-			m_unObjectId, 
-			vr::VREvent_LensDistortionChanged, 
-			vr::VREvent_Data_t(), 
-			0.0f
-		);
-	}
-
-	}
+}
 	
