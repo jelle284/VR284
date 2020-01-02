@@ -20,7 +20,7 @@ vr::EVRInitError CServerProvider::Init( IVRDriverContext *pDriverContext ){
 	vr::VRServerDriverHost()->TrackedDeviceAdded(
 		m_pHeadMountDisplay->GetSerialNumber().c_str(), vr::TrackedDeviceClass_HMD, m_pHeadMountDisplay
 	);
-	/*
+	/**/
 	//create controller device.
 	m_pHandController[LEFT_HAND_CONTROLLER] = new CHandControllerDevice("Left Controller", TrackedControllerRole_LeftHand);
 	vr::VRServerDriverHost()->TrackedDeviceAdded(
