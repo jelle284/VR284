@@ -38,7 +38,7 @@ CHeadMountDisplayDevice::CHeadMountDisplayDevice(){
 	
 	//init m_pose struct
 	memset( &m_Pose, 0, sizeof( m_Pose ) );
-	m_Pose.willDriftInYaw = true;
+	m_Pose.willDriftInYaw = false;
 	m_Pose.shouldApplyHeadModel = false;
 	m_Pose.deviceIsConnected = true;
 	m_Pose.poseIsValid = true;

@@ -12,7 +12,7 @@ CHandControllerDevice::CHandControllerDevice(string serial_number,ETrackedContro
 	m_Pose.result = ETrackingResult::TrackingResult_Running_OK;
 	m_Pose.qRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
 	m_Pose.qWorldFromDriverRotation = HmdQuaternion_Init( 1, 0, 0, 0 );
-	m_Pose.qDriverFromHeadRotation = HmdQuaternion_Init( 1,0, 0, 0);
+	m_Pose.qDriverFromHeadRotation = HmdQuaternion_Init( 1, 0, 0, 0);
 	m_Pose.poseTimeOffset = -0.016f;	
 	m_Pose.deviceIsConnected = true;
 	m_Pose.poseIsValid = true;

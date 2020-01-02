@@ -27,14 +27,14 @@ vr::EVRInitError CServerProvider::Init( IVRDriverContext *pDriverContext ){
 		m_pHandController[0]->GetSerialNumber(), vr::TrackedDeviceClass_Controller, m_pHandController[0]
 	);
 	m_bControllerState[LEFT_HAND_CONTROLLER] = true;
-	*/
+	
 	//create controller device.
 	m_pHandController[RIGHT_HAND_CONTROLLER] = new CHandControllerDevice("Right Controller", TrackedControllerRole_RightHand);
 	vr::VRServerDriverHost()->TrackedDeviceAdded(
 		m_pHandController[1]->GetSerialNumber(), vr::TrackedDeviceClass_Controller, m_pHandController[1]
 	);
 	m_bControllerState[RIGHT_HAND_CONTROLLER] = true;
-
+	
 	/* Create pose update thread */
 	pThread = new std::thread(&CServerProvider::PoseUpdateThread, this);
 	return VRInitError_None;
